@@ -1,0 +1,170 @@
+/* -------------------------------------------------- */
+/* Standard Settings */
+
+/* -------------------------------------------------- */
+
+/* -------------------------------------------------- */
+/* Media Display Codes - FUTURE */
+
+@media screen and (max-height: 1080px) {
+    /* #top { */
+        /* padding-top: 15px; */
+        /* padding-bottom: 15px; */
+        /* font-size: calc((1080px / 10) - (15px + 15px)); */
+    /* } */
+}
+
+@media screen and (max-height: 1920px) {
+    /* #top { */
+        /* padding-top: 15px; */
+        /* padding-bottom: 15px; */
+        /* font-size: calc((1920px / 10) - (15px + 15px)); */
+    /* } */
+}
+/* -------------------------------------------------- */
+
+
+/* -------------------------------------------------- */
+/* Custom Settings */
+.mediaArt {
+    /* The image used */
+    /*background-image: url(""); */
+
+    /* Add the blur effect */
+    filter: blur(8px);
+    -webkit-filter: blur(8px);
+
+    /* Full height */
+    height: 100%;
+
+    /* Center and scale the image nicely */
+    background-repeat: no-repeat;
+    background-attachment: fixed;
+    background-size: cover;
+    background-position: center;
+}
+
+#top, #bottom {
+    font-size: 6vh;
+}
+
+.userText {
+    position: relative;
+    float: left;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    /* white-space: nowrap; */
+    display: inline-block;
+}
+
+.marqueeDisplay {
+    position: relative;
+    float: center;
+    display: inline-block;
+}
+
+.modal-dialog {
+    width: 90%;
+    height: 90%;
+}
+
+.modal-content {
+    width: 90%;
+    height: 90%;
+}
+
+.modal-body {
+    padding: 0;
+}
+
+#settingFrame {
+    width: 100%;
+    height: 100%;
+}
+
+.showMetadata {
+    font-size: 10px;
+}
+
+.showMetadata img {
+    padding-left: 2px;
+    padding-right: 2px;
+}
+
+@media screen and (orientation: landscape) {
+    .showMetadata img {
+        width: 15%;
+        /* padding-left: 2px; */
+        /* padding-right: 2px; */
+    }
+
+    table.DisplayProgressInfo {
+        width: 45%;
+    }
+
+    table.SetProgressBar {
+        width: 75%;
+    }
+
+    #progress {
+        width: 50%;
+        left: 25%
+    }
+}
+
+@media screen and (orientation: portrait) {
+    .showMetadata img {
+        width: 30%;
+        /* padding-left: 2px; */
+        /* padding-right: 2px; */
+    }
+
+    table.DisplayProgressInfo {
+        width: 100%;
+    }
+
+    table.SetProgressBar {
+        width: 100%;
+    }
+
+    #progress {
+        width: 100%;
+        left: 0%
+    }
+}
+
+table.DisplayProgressInfo {
+    margin-left: auto;
+    margin-right: auto;
+    table-layout: fixed;
+
+    /* Debugging */
+    /* border: 1px solid white; */
+}
+
+tr.DisplayProgressInfo {
+    /* Debugging */
+    /* border: 1px solid white; */
+}
+
+td.DisplayProgressInfo {
+    text-align: center;
+    /* padding-left: 10px; */
+    /* padding-right: 10px; */
+
+    /* Debugging */
+    /* border: 1px solid white; */
+}
+
+table.SetProgressBar {
+    margin-left: auto;
+    margin-right: auto;
+    table-layout: fixed;
+
+    /* Debugging */
+    /* border: 1px solid white; */
+}
+
+/* -------------------------------------------------- */
+
