@@ -2,215 +2,345 @@
 //For feedback, suggestions, or issues please visit https://www.mattsshack.com/plex-movie-poster-display/
 include 'config.php';
 include 'status.php';
+include 'assets/plexmovieposter/tools.php';
+include 'assets/plexmovieposter/CacheLib.php';
+include 'assets/plexmovieposter/PMPDLib.php';
+include 'assets/plexmovieposter/PlexLib.php';
+include 'assets/plexmovieposter/getPoster.php';
+
 $results = Array();
-$movies = Array();
+$mediaArr = Array();
+
 ob_start();
 $data = [];
-//Setup Scrolling Text Using jQuery Marquee (https://www.jqueryscript.net/animation/Text-Scrolling-Plugin-for-jQuery-Marquee.html)
-if ($pmpBottomScroll == 'Enabled') {
-    $scrollPrepend = "<div class='marquee' style='height: 100%'>";
-    $scrollAppend = "</div>
-      <script>
-        $(function(){
-          $('.marquee').marquee({
-             allowCss3Support: true,
-             css3easing: 'linear',
-             delayBeforeStart: 2000,
-             duration: 8000,
-             direction: 'up',
-             gap: 20,
-             startVisible: true
-           });
-        });
-      </script>";
-} else {
-    $scrollPrepend = "";
-    $scrollAppend = "";
-}
 
-//Clean Up Cache Dir (Files Older than 24 hours)
-$cachePath = 'cache/posters/';
-if ($handle = opendir($cachePath)) {
-    while (false !== ($file = readdir($handle))) {
-        if ($file != "." && $file != ".." && ((time() - filectime($cachePath . $file)) > 86400)) {
-            unlink($cachePath . $file);
-        }
-    }
-}
+CacheValidate();  // Validate all defined Cache folders and settings.
+getData_PreLoad(); // Setup default variables that will be required throughout the process.
 
-// Let's be lazy
-$title = "";
-$display = "";
-$bottomLine = "";
-$isPlaying = false;
-$mediaTitle = "";
-$mediaSummary = "";
-$mediaTagline = "";
-$topText = "";
-$topCustom = "";
-$bottomText = "";
-$bottomCustom = "";
-$topColor = "";
-$bottomColor = "";
-$topSize = "";
-$bottomSize = "";
-$autoScaleBottom = false;
-$autoScaleTop = false;
-$scrollBottom = false;
-$topSelection = false;
-$bottomSelection = false;
+plex_server_Settings(); // Server setting for PLEX interaction.
 
 //Display Custom Image if Enabled
 if ($customImageEnabled == "Enabled") {
-    $data['type'] = 'custom';
-    $topSize = $customTopFontSize;
-    $topColor = $customTopFontColor;
-    $bottomSize = $customBottomFontSize;
-    $bottomColor = $customBottomFontColor;
-    $topText = $customTopText;
-    $bottomText = $customBottomText;
-    $topSelection = $nowShowingTop;
-    $bottomSelection = $nowShowingBottom;
-    $display = "url('cache/custom/$customImage')";
-    $topStrokeColor = $customTopFontOutlineColor;
-    $topStrokeSize = $customTopFontOutlineSize;
-    $bottomStrokeColor = $customBottomFontOutlineColor;
-    $bottomStrokeSize = $customBottomFontOutlineSize;
+    CustomImage_getData(); // Moved all actions to a function in the PMPDLib.php file.
 } else {
-    // Plex Module Connect to Plex
-    $url = "http://$plexServer:32400/status/sessions?X-Plex-Token=$plexToken";
+    // Plex Module Connect to Plex Server
+
     // Store this for debugging
-    $data['sessionUrl'] = $url;
+    $data['sessionUrl'] = $plexServerURL;
+    pmp_Logging("getMediaURL", "Session URL: " . $data['sessionUrl']);
+
     $data['plexClient'] = $plexClient;
     $data['plexClientName'] = $plexClientName;
-    $getXml = file_get_contents($url);
+    $getXml = file_get_contents($plexServerURL);
+
     $xml = simplexml_load_string($getXml) or die("feed not loading");
     $isPlaying = false;
     if ($xml['size'] != '0') {
         $data['hasXml'] = true;
-        foreach ($xml->Video as $clients) {
-            $art = false;
+
+        if ($xml->Video) {
+            $mediaType = "Video";
+        }
+        if ($xml->Track) {
+            $mediaType = "Track";
+        }
+
+        foreach ($xml->$mediaType as $clients) {
+            plex_isPlaying_dataProcess();
+
             // If this matches our client IP or name, gather data
-            if (strstr($clients->Player['address'], $plexClient) || strstr($clients->Player['title'], $plexClientName)) {
-                $isPlaying = true;
-                $autoScaleTop = $nowShowingTopAutoScale;
-                $autoScaleBottom = $nowShowingBottomAutoScale;
-                $topSelection = $nowShowingTop;
-                $bottomSelection = $nowShowingBottom;
-                $data['hasClient1'] = true;
-                $mediaTitle = $clients['title'];
-                $mediaSummary = $clients['summary'];
-                $mediaTagline = $clients['tagline'];
-                $topSize = $nowShowingTopFontSize;
-                $topColor = $nowShowingTopFontColor;
-                $bottomSize = $nowShowingBottomFontSize;
-                $bottomColor = $nowShowingBottomFontColor;
-                //Now Showing Sections
-                if (strstr($clients['type'], "movie")) {
-                    $art = $clients['thumb'];
-                } elseif (strstr($clients['type'], "episode")) {
-                    $art = $clients['grandparentThumb'];
-                }
+            if (in_array($PLEX_PlayerAddress, $PLEX_Client_ARR) || in_array($PLEX_PlayerAddress, $PLEX_ClientName_ARR)) {
+                // Mode
+                    $isPlaying = true;
+                    $data['hasClient1'] = true;
+
+                // PMPD Settings
+                    $autoScaleTop = $nowShowingTopAutoScale;
+                    $topSelection = $nowShowingTop;
+                    $topSize = $nowShowingTopFontSize;
+                    $topColor = $nowShowingTopFontColor;
+                    $topFontEnabled = $nowShowingTopFontEnabled;
+                    $topFontID = $nowShowingTopFontID;
+
+                    $autoScaleBottom = $nowShowingBottomAutoScale;
+                    $bottomSelection = $nowShowingBottom;
+                    $bottomSize = $nowShowingBottomFontSize;
+                    $bottomColor = $nowShowingBottomFontColor;
+                    $bottomFontEnabled = $nowShowingBottomFontEnabled;
+                    $bottomFontID = $nowShowingBottomFontID;
+
+                    $mediaArt_Status = $nowShowingBackgroundArt;
+                    $FullScreenArtMode = $nowShowingFullScreenArt;
+                    $mediaArt_ShowTVThumb = $nowShowingShowTVThumb;
+
+                    if (!empty($nowShowingRefreshSpeed)) {
+                        $RefreshSpeed = $nowShowingRefreshSpeed;
+                    }
+
+                    //Setup Scrolling Text Using jQuery Marquee (https://www.jqueryscript.net/animation/Text-Scrolling-Plugin-for-jQuery-Marquee.html)
+                    if ($nowShowingBottomScroll == 'Enabled') {
+                        $bottomScroll = TRUE;
+                        $scrollPrepend = "<div class='marquee' style='height: 100%'>";
+                        $scrollAppend = "</div>
+                        <script>
+                            $(function(){
+                            $('.marquee').marquee({
+                                allowCss3Support: true,
+                                css3easing: 'linear',
+                                delayBeforeStart: 2000,
+                                duration: 8000,
+                                direction: 'up',
+                                gap: 20,
+                                startVisible: true
+                            });
+                            });
+                        </script>";
+                    } else {
+                        $bottomScroll = FALSE;
+                        $scrollPrepend = "";
+                        $scrollAppend = "";
+                    }
+
+                $mediaTitle = $clients['title']; // Default
+                $mediaTagline = $clients['tagline']; // Default
+                $mediaSummary = $clients['summary']; // Default
+                $mediaArt = $clients['art']; // Default
+                $mediaThumb = $clients['thumb']; // Default
+
+                // (strstr($clients['type'], "movie") // Notes for validation
+                $viewGroup = $clients['type'];
+
+                plex_metadata_viewGroup();
+
+                plex_metadata_PROCESS();
 
                 //Progress Bar
-                if ($pmpDisplayProgress == 'Enabled') {
-                    $percentComplete = (((int)$clients['duration'] / 1000) / ((int)$clients['viewOffset'] / 1000)) * 100;
-                    $progressBar = "<div class='progress' style='height : " . $pmpDisplayProgressSize . "px;'><div class='progress-bar' role='progressbar' style='width: " . $percentComplete . "%; background-color : " . $pmpDisplayProgressColor . ";' aria-valuenow='" . $percentComplete . "' aria-valuemin='0' aria-valuemax='100'></div></div> ";
-                } else {
-                    $progressBar = NULL;
-                }
+                PMPD_CalcProgressInfo();
+                PMPD_SetProgressBar();
             }
         }
     }
+
     $data['isPlaying'] = $isPlaying;
     //Coming Soon (If Nothing is Playing)
     if (!$isPlaying) {
         //Clean Up Status
         updateStatus();
-        $autoScaleBottom = $comingSoonBottomAutoScale;
-        $autoScaleTop = $comingSoonTopAutoScale;
-        $topColor = $comingSoonTopFontColor;
-        $topSize = $comingSoonTopFontSize;
-        $bottomColor = $comingSoonBottomFontColor;
-        $bottomSize = $comingSoonBottomFontSize;
-        $topSelection = $comingSoonTop;
-        $bottomSelection = $comingSoonBottom;
+
+        // PMPD Settings
+            $autoScaleTop = $comingSoonTopAutoScale;
+            $topSelection = $comingSoonTop;
+            $topSize = $comingSoonTopFontSize;
+            $topColor = $comingSoonTopFontColor;
+            $topFontEnabled = $comingSoonTopFontEnabled;
+            $topFontID = $comingSoonTopFontID;
+
+            $autoScaleBottom = $comingSoonBottomAutoScale;
+            $bottomSelection = $comingSoonBottom;
+            $bottomSize = $comingSoonBottomFontSize;
+            $bottomColor = $comingSoonBottomFontColor;
+            $bottomFontEnabled = $comingSoonBottomFontEnabled;
+            $bottomFontID = $comingSoonBottomFontID;
+
+            $mediaArt_Status = $comingSoonBackgroundArt;
+            $FullScreenArtMode = $comingSoonFullScreenArt;
+            $mediaArt_ShowTVThumb = $comingSoonShowTVThumb;
+
+            if (!empty($comingSoonRefreshSpeed)) {
+                $RefreshSpeed = $comingSoonRefreshSpeed;
+            }
+
+            //Setup Scrolling Text Using jQuery Marquee (https://www.jqueryscript.net/animation/Text-Scrolling-Plugin-for-jQuery-Marquee.html)
+            if ($comingSoonBottomScroll == 'Enabled') {
+                $bottomScroll = TRUE;
+                $scrollPrepend = "<div class='marquee' style='height: 100%'>";
+                $scrollAppend = "</div>
+                <script>
+                    $(function(){
+                    $('.marquee').marquee({
+                        allowCss3Support: true,
+                        css3easing: 'linear',
+                        delayBeforeStart: 2000,
+                        duration: 8000,
+                        direction: 'up',
+                        gap: 20,
+                        startVisible: true
+                    });
+                    });
+                </script>";
+            } else {
+                $bottomScroll = FALSE;
+                $scrollPrepend = "";
+                $scrollAppend = "";
+            }
+
+        plex_variable_presets(); // FUTURE USE
 
         //Multi Movie Section Support
-        $plexServerMovieSections = explode(",", $plexServerMovieSection);
-        $useSection = rand(0, count($plexServerMovieSections) - 1);
-        $MoviesURL = 'http://' . $plexServer . ':32400/library/sections/' . $plexServerMovieSections[$useSection] . '/' . $comingSoonShowSelection . '?X-Plex-Token=' . $plexToken . '';
-        $getMovies = file_get_contents($MoviesURL);
-        $xmlMovies = simplexml_load_string($getMovies) or die("feed not loading");
-        $countMovies = count($xmlMovies);
-        if ($countMovies > '0') {
-            foreach ($xmlMovies->Video as $movie) {
-                $movies[] = strip_tags($movie['title']);
+        plex_random_media(1); // Scan Libraries for Media
+
+        if ($viewGroup == "track") {
+            // Future: Possible add music to display if using "all" and maybe "Recently Added" or "Newest"
+            unset($plexServerMovieSections[$useSection]);
+            $plexServerMovieSection = implode(",", $plexServerMovieSections);
+            pmp_Logging("getMediaURL", "Library (Array - Updated): $plexServerMovieSection");
+
+            plex_random_media(2);
+        }
+
+        $countMedia = count($xmlMedia);
+        if ($countMedia > '0') {
+
+            plex_metadata_viewGroup();
+
+            // Media
+            foreach ($xmlMedia->$elementType as $mediaElement) {
+                $mediaArr[] = strip_tags($mediaElement['title']);
             }
-            $random_keys = array_rand($movies, 1);
-            $showMovie = $movies[$random_keys];
-            foreach ($xmlMovies->Video as $movie) {
-                if (strstr($movie['title'], $showMovie)) {
-                    $art = $movie['thumb'];
-                    $mediaTitle = $movie['title'];
-                    $mediaSummary = $movie['summary'];
-                    $mediaTagline = $movie['tagline'];
+            $random_keys = array_rand($mediaArr, 1);
+            $showMedia = $mediaArr[$random_keys];
+            $mediaArrCount = count($mediaArr);
+            pmp_Logging("getMediaURL", "Coming Soon ($mediaType_Display) COUNT: $mediaArrCount");
+
+            if ($mediaArrCount > '0') {
+                foreach ($xmlMedia->$elementType as $clients) {
+                    if (strstr($clients['title'], $showMedia)) {
+                        $checkTitle = $clients['title'];
+                        pmp_Logging("getMediaURL", "Coming Soon ($mediaType_Display): $checkTitle");
+
+                        plex_metadata_PROCESS();
+                    }
                 }
             }
+
         }
     }
 }
 
-// If we're not using custom images, check if we need to cache art from Plex
+// If we're not using custom images, check if we need to cache art from PLEX
 // Otherwise, necessary values are set at the top
 if ($customImageEnabled != "Enabled") {
     // Check to see if we should cache our art
-    if ($cacheEnabled) {
-        $poster = explode("/", $art);
-        $poster = trim($poster[count($poster) - 1], '/');
-        $filename = 'cache/posters/' . $poster;
-        // There's nothing else to do here, just save it
-        if (!file_exists($filename)) {
-            file_put_contents("cache/posters/$poster", fopen("http://$plexServer:32400$art?X-Plex-Token=$plexToken", 'r'));
-        }
-        $display = "url('cache/posters/$poster')";
-    } else {
-        $display = "url('http://$plexServer:32400$art?X-Plex-Token=$plexToken')";
-    }
+
+    // Media Thumb (Poster)
+    plex_getMedia_thumb();
+
+    // Media Art (Background)
+    plex_getMedia_art();
+
     // Figure out which text goes where
-    switch($topSelection) {
-        case 'title': $topText = $mediaTitle;break;
-        case 'summary': $topText = $mediaSummary;break;
-        case 'tagline': $topText = $mediaTagline;break;
-        case 'custom': $topText = $isPlaying ? $nowShowingTopText : $comingSoonTopText;break;
+    switch ($topSelection) {
+        case 'title':
+            $topText = $mediaTitle;
+            break;
+        case 'summary':
+            $topText = $mediaSummary;
+            break;
+        case 'tagline':
+            $topText = $mediaTagline;
+            break;
+        case 'custom':
+            $topText = $isPlaying ? $nowShowingTopText : $comingSoonTopText;
+            break;
     }
 
-    switch($bottomSelection) {
-        case 'title': $bottomText = $mediaTitle;break;
-        case 'summary': $bottomText = $mediaSummary;break;
-        case 'tagline': $bottomText = $mediaTagline;break;
-        case 'custom': $bottomText = $isPlaying ? $nowShowingBottomText : $comingSoonBottomText;break;
+    switch ($bottomSelection) {
+        case 'title':
+            $bottomText = $mediaTitle;
+            break;
+        case 'summary':
+            $bottomText = $mediaSummary;
+            break;
+        case 'tagline':
+            $bottomText = $mediaTagline;
+            break;
+        case 'custom':
+            $bottomText = $isPlaying ? $nowShowingBottomText : $comingSoonBottomText;
+            break;
     }
+
     // Set our stroke size and color for top and bottom
-    $topStrokeSize = $isPlaying ? $comingSoonTopFontOutlineSize : $nowShowingTopFontOutlineSize;
-    $topStrokeColor = $isPlaying ? $comingSoonTopFontOutlineColor : $nowShowingTopFontOutlineColor;
-    $bottomStrokeSize = $isPlaying ? $comingSoonBottomFontOutlineSize : $nowShowingBottomFontOutlineSize;
-    $bottomStrokeColor = $isPlaying ? $comingSoonBottomFontOutlineColor : $nowShowingBottomFontOutlineColor;
+    if ($isPlaying) {
+        $topStrokeSize = $nowShowingTopFontOutlineSize;
+        $topStrokeColor = $nowShowingTopFontOutlineColor;
+        $bottomStrokeSize = $nowShowingBottomFontOutlineSize;
+        $bottomStrokeColor = $nowShowingBottomFontOutlineColor;
+    } else {
+        $topStrokeSize = $comingSoonTopFontOutlineSize;
+        $topStrokeColor = $comingSoonTopFontOutlineColor;
+        $bottomStrokeSize = $comingSoonBottomFontOutlineSize;
+        $bottomStrokeColor = $comingSoonBottomFontOutlineColor;
+    }
 }
 
+// --------------------------------------------------
+// Settings: Top
+    // Move to PMPDLib.php
+    $topStyle = "color: ${topColor}; -webkit-text-stroke: ${topStrokeSize}px ${topStrokeColor};";
 
+    if ($topFontEnabled == TRUE && $topFontID != "None") {
+        $topStyle .= " font-family: '$topFontID';";
+    }
 
-$topStyle = "color: ${topColor}; -webkit-text-stroke: ${topStrokeSize}px ${topStrokeColor};";
-if (!$autoScaleTop) $topStyle .= "font-size: ${topSize}px;";
-$topLine = "<div><span class='userText' style='$topStyle'> $topText</span></div>";
+    if (!$autoScaleTop) {
+        $topStyle .= " font-size: ${topSize}px;";
+    }
 
-$bottomStyle = "color: ${bottomColor};";
-if (!$autoScaleBottom) $bottomStyle .= "font-size: ${bottomSize}px;";
-$bottomLine = "$scrollPrepend<div><span class='userText' style='$bottomStyle'>${bottomText}</span></div>$scrollAppend";
-$results = [];
-$results['top'] = $topLine;
-$results['middle'] = $display;
-$results['bottom'] = $bottomLine;
+    if ($topScroll == TRUE) {
+        $topCSSClass = "marqueeDisplay";
+    }
+    else {
+        $topCSSClass = "userText";
+    }
+
+    $topLine = "<div><span class='$topCSSClass' style=\"$topStyle\">${topText}</span></div>"; // Missing: Scroll Append?
+// --------------------------------------------------
+
+// --------------------------------------------------
+// Settings: Bottom
+    // Move to PMPDLib.php
+    $bottomStyle = "color: ${bottomColor}; -webkit-text-stroke: ${bottomStrokeSize}px ${bottomStrokeColor};";
+
+    if ($bottomFontEnabled == TRUE && $bottomFontID != "None") {
+        $bottomStyle .= " font-family: '$bottomFontID';";
+    }
+
+    if (!$autoScaleBottom) {
+        $bottomStyle .= " font-size: ${bottomSize}px;";
+    }
+
+    if ($bottomScroll == TRUE) {
+        $bottomCSSClass = "marqueeDisplay";
+    }
+    else {
+        $bottomCSSClass = "userText";
+    }
+
+    $bottomLine = "$scrollPrepend<div><span class='$bottomCSSClass' style=\"$bottomStyle\">${bottomText}</span></div>$scrollAppend";
+// --------------------------------------------------
+
+updateStatusRefresh();
+
+SetFullScreenMode($FullScreenArtMode);
+
+switch ($topSelection) {
+    case 'progessinfo':
+        PMPD_DisplayProgressInfo();
+        break;
+    default:
+        break;
+}
+
+switch ($bottomSelection) {
+    case 'presented':
+        PMPD_DisplayMediaInfo();
+        break;
+    default:
+        break;
+}
+
+PMPD_SetResults();
+
 ob_end_clean();
 echo json_encode($results);
 die();
@@ -219,5 +349,13 @@ die();
 function updateStatus($lastNowShowing = "") {
     $myFile = fopen("status.php", "w") or die("Unable to open file!");
     fwrite($myFile, ' <?php $lastNowShowing = "' . $lastNowShowing. '";');
+    fclose($myFile);
+}
+
+function updateStatusRefresh($lastNowShowing = "") {
+    global $RefreshSpeed;
+
+    $myFile = fopen("statusRefresh.php", "w") or die("Unable to open file!");
+    fwrite($myFile, ' <?php $currentRefreshSpeed = "' . $RefreshSpeed. '";?>');
     fclose($myFile);
 }

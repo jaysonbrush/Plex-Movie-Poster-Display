@@ -1,27 +1,25 @@
 <?php
 //For feedback, suggestions, or issues please visit https://www.mattsshack.com/plex-movie-poster-display/
 include_once('config.php');
-$pmpImageSpeed = ($pmpImageSpeed * 1000);
+include_once('assets/plexmovieposter/tokenCheck.php');
+include 'assets/plexmovieposter/CommonLib.php';
+include 'assets/plexmovieposter/tools.php';
+include 'status.php';
+include 'statusRefresh.php';
+
+// $pmpImageSpeed = ($pmpImageSpeed * 1000);
+if (empty($currentRefreshSpeed)) {
+    $currentRefreshSpeed = 30;
+}
+
+$pmpImageSpeed = ($currentRefreshSpeed * 1000);
 ?>
 
-<html>
+<!doctype html>
+<html lang="en">
 <head>
-    <title>Plex Movie Poster Display</title>
+    <?php HeaderInfo(basename(__FILE__)); ?>
 
-    <!-- JQuery -->
-    <script src="assets/jquery-3.4.0/jquery-3.4.0.min.js"></script>
-    <script src="assets/jquery-3.4.0/jquery.marquee.min.js"></script>
-    <script src="assets/jquery-3.4.0/jquery.easing.min.js"></script>
-    <!-- Text Scaler -->
-    <script src="assets/fitty/fitty.js"></script>
-    <!-- Bootstrap JavaScript-->
-    <script src="assets/bootstrap-4.3.1/js/bootstrap.min.js"></script>
-
-    <!-- Bootstrap CSS-->
-    <link rel="stylesheet" href="assets/bootstrap-4.3.1/css/bootstrap.min.css">
-
-    <!-- Default Poster Template CSS -->
-    <link rel="stylesheet" href="assets/styles/default/poster.css">
     <style>
         .comingSoonTop {
             font-size: <?php echo $comingSoonTopFontSize?>px;
@@ -41,45 +39,113 @@ $pmpImageSpeed = ($pmpImageSpeed * 1000);
         $(function () {
             $.getJSON('getData.php', function (data) {
                 $.each(data, function (key, val) {
-                    if (key == "middle") {
-                        $('#' + key).css('background-image', val);
-                    } else {
-                        $('#' + key).html(val);
+                    switch(key) {
+                        // case "refreshSpeed":
+                        //     var tmpRefreshSpeed = parseInt(val);
+                        //     var currRefreshSpeed = parseInt(<?php echo $currentRefreshSpeed ?>);
+                        //     if (tmpRefreshSpeed != currRefreshSpeed) {
+                        //         // document.write("Refresh out of sync");
+                        //         location.reload(true);
+                        //     }
+                        //     break;
+                        case "middle":
+                            $('#' + key).css('background-image', val);
+                            break;
+                        case "mediaArt":
+                            $('.' + key).css('background-image', val);
+                            break;
+                        case 'fullScreenMode':
+                            var SetMode = val;
+                            if (SetMode == true) {
+                                //  document.write("fullScreenMode");
+                                $('.' + "mediaArt").css('filter', "none");
+                                $('.' + "mediaArt").css('-webkit-filter', "none");
+                                // $('.' + "mediaArt").css('background-size', "auto 100%");
+                                $('.' + "mediaArt").css('background-size', "contain");
+                            }
+                            else {
+                                //  document.write("fullScreenMode");
+                                $('.' + "mediaArt").css('filter', "blur(8px)");
+                                $('.' + "mediaArt").css('-webkit-filter', "blur(8px)");
+                                $('.' + "mediaArt").css('background-size', "cover");
+                                }
+                            break;
+                        default:
+                            $('#' + key).html(val);
+                            break;
                     }
                 });
-                fitty('.userText', {maxSize: 100, minSize: 10});
-                fitty.fitAll();
             });
 
+            // Press 's' key will bring up the settings page.
+            // onkeypress - The Unicode CHARACTER code is: 115
+            // onkeydown - The Unicode KEY code is: 83
+            // https://www.w3schools.com/jsref/tryit.asp?filename=tryjsref_event_key_keycode2
             $(document).keypress(function(event){
                 var keycode = (event.keyCode ? event.keyCode : event.which);
                 console.log("Keypress: " + keycode);
-                if(keycode == '115'){
-                    $('#myModal').modal({show:true});
-                    $("#settingFrame").attr('src', 'admin.php');
+                // if (keycode == '115') {
+                //     $('#myModal').modal({show:true});
+                //     $("#settingFrame").attr('src', 'settings/general.php');
+                // }
+                switch (keycode) {
+                    case 115: // 's'
+                        $('#myModal').modal({show:true});
+                        $("#settingFrame").attr('src', 'settings/general.php');
+                        break;
+                    // case 105: // 'i'
+                    //     $('#myModal').modal({show:true});
+                    //     $("#settingFrame").attr('src', '');
+                    //     break;
+                    default:
+                        break;
                 }
-
             });
 
-
-
-                $('#myModal').on('hidden.bs.modal', function(){
-                    $('#settingFrame').html("").attr("src", "");
-                });
-
+            $('#myModal').on('hidden.bs.modal', function(){
+                $('#settingFrame').html("").attr("src", "");
+            });
 
             setInterval(function () {
                 $.getJSON('getData.php', function (data) {
                     $.each(data, function (key, val) {
-                        if (key == "middle") {
-                            $('#' + key).css('background-image', val);
-                        } else {
-                            $('#' + key).html(val);
+                        switch(key) {
+                            case "refreshSpeed":
+                                var tmpRefreshSpeed = parseInt(val);
+                                var currRefreshSpeed = parseInt(<?php echo $currentRefreshSpeed ?>);
+                                if (tmpRefreshSpeed != currRefreshSpeed) {
+                                    // document.write("Refresh out of sync");
+                                    location.reload(true);
+                                }
+                                break;
+                            case "middle":
+                                $('#' + key).css('background-image', val);
+                                break;
+                            case "mediaArt":
+                                $('.' + key).css('background-image', val);
+                                break;
+                            case 'fullScreenMode':
+                                var SetMode = val;
+                                if (SetMode == true) {
+                                    //  document.write("fullScreenMode");
+                                    $('.' + "mediaArt").css('filter', "none");
+                                    $('.' + "mediaArt").css('-webkit-filter', "none");
+                                    // $('.' + "mediaArt").css('background-size', "auto 100%");
+                                    $('.' + "mediaArt").css('background-size', "contain");
+                                } 
+                                else {
+                                    //  document.write("fullScreenMode");
+                                    $('.' + "mediaArt").css('filter', "blur(8px)");
+                                    $('.' + "mediaArt").css('-webkit-filter', "blur(8px)");
+                                    $('.' + "mediaArt").css('background-size', "cover");
+                                }
+                            break;
+                            default:
+                                $('#' + key).html(val);
+                                break;
                         }
                     });
                 });
-                fitty('.userText', {maxSize: 100, minSize: 10});
-                fitty.fitAll();
             }, <?php echo $pmpImageSpeed; ?>);
         });
 
@@ -87,28 +153,30 @@ $pmpImageSpeed = ($pmpImageSpeed * 1000);
 </head>
 
 <body>
-<div id="container">
-    <div id="alert" align="center" class="center"></div>
-    <div id="top" style="overflow: hidden;" align="center" class="center"></div>
-    <div id="middle" class="middle"></div>
-    <div id="bottom" style="overflow: hidden;" align="center" class="center"></div>
-</div>
-<div class="modal fade" id="myModal">
-    <div class="modal-dialog modal-lg">
-        <div class="modal-content bmd-modalContent">
+    <div class="mediaArt"></div>
 
-            <div class="modal-body">
+    <div id="container">
+        <div id="alert" align="center" class="center"></div>
+        <div id="top" style="overflow: hidden;" align="center" class="center"></div>
+        <div id="progress" class="center"></div>
+        <div id="middle" class="middle"></div>
+        <div id="bottom" style="overflow: hidden;" align="center" class="center"></div>
+    </div>
 
-                <div class="close-button">
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Close"><span aria-hidden="true">&times;</span></button>
+    <div class="modal fade" id="myModal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content bmd-modalContent">
+                <div class="modal-body">
+                    <div class="close-button">
+                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                            <span aria-hidden="true">&times;</span>
+                        </button>
+                    </div>
+                    <iframe class="embed-responsive-item" id='settingFrame' frameborder="0"></iframe>
                 </div>
-                <iframe class="embed-responsive-item" id='settingFrame' frameborder="0"></iframe>
-
-            </div>
-
-        </div><!-- /.modal-content -->
-    </div><!-- /.modal-dialog -->
-</div><!-- /.modal -->
+            </div><!-- /.modal-content -->
+        </div><!-- /.modal-dialog -->
+    </div><!-- /.modal -->
 </body>
 
 </html>
