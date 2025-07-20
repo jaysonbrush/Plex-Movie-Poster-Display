@@ -42,10 +42,12 @@ Edit `config.php` with your settings:
 
 ## Recommended Setup
 
-Run on a Raspberry Pi connected to a display via HDMI. Configure the Pi to:
+Works great on a Raspberry Pi Zero W connected to a display via HDMI. Configure the Pi to:
 1. Boot to desktop
 2. Auto-start Chromium in kiosk mode
 3. Load the Plex Movie Poster Display URL
+
+The lightweight nature of this application makes it ideal for low-power devices like the Pi Zero W.
 
 ## Credits
 
