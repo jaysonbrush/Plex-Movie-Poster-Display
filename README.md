@@ -49,6 +49,8 @@ Works great on a Raspberry Pi Zero W connected to a display via HDMI. Configure 
 
 The lightweight nature of this application makes it ideal for low-power devices like the Pi Zero W.
 
+For a detailed guide on setting up your Raspberry Pi as a kiosk display, see: [Raspberry Pi Digital Signage](https://www.jaysonbrush.com/index.php/2022/08/07/raspberry-pi-digital-signage/)
+
 ## Credits
 
 - Original project by [MattsShack](https://github.com/MattsShack/Plex-Movie-Poster-Display)
