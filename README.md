@@ -1,18 +1,57 @@
 # Plex Movie Poster Display
-Scraps the Plex sessions page to display the current playing movie or TV show poster on a screen.
 
-Disclaimer – I am a network engineer not a programmer. I play around with code. I am publishing this to give back to the communities that has helped me learn. There may be better ways of scraping the Plex Posters, but this is the way I chose to do it. I am open to suggestions. Use at your own risk.
+A web-based display that shows the currently playing movie or TV show poster from your Plex Media Server. When nothing is playing, it displays random posters from your unwatched library.
 
-I decided to rewrite the program in PHP and make it browser based. This allows me to have the Raspberry Pi boot to the desktop, automatically start a browser in kiosk mode, and open the PHP site.
+> This is a fork of [MattsShack/Plex-Movie-Poster-Display](https://github.com/MattsShack/Plex-Movie-Poster-Display) with security improvements and code refactoring.
 
-This script scraps http://IP_ADDRESS_OF_PLEX_SERVER>:32400/status/sessions for clients and displays the poster of the currently playing movie or TV show. If nothing is currently playing it will pull a random poster of an unwatched movie.
+## Features
 
-## Dev Branch
-I have added a dev branch to merge all changes too. I will be adding my changes to the branch in the future.
+- Displays currently playing media poster from Plex
+- Shows random unwatched movie posters when idle
+- Customizable "Now Showing" and "Coming Soon" text overlays
+- Support for custom fonts and colors
+- Progress bar display option
+- Background art with blur effect
+- Web-based settings panel (press 's' to access)
+- Mobile-friendly responsive design
 
-## My Setup
-Plex Media Server is running on a dedicated server.
-Plex Movie Poster Display is running on separate Raspberry Pi 3 connected to a screen via HDMI. On boot up the Pi launches Chromium in kiosk mode and loads the Plex Movie Poster Display URL.
+## Security Improvements (This Fork)
 
-## Help
-https://www.mattsshack.com/plex-movie-poster-display/
+- **Bcrypt password hashing** - Passwords are now securely hashed instead of stored in plaintext
+- **Session timeout** - Auto-logout after 30 minutes of inactivity
+- **CSRF protection** - Forms are protected against cross-site request forgery
+- **Secure session handling** - Proper session initialization and destruction
+- **Token validation** - Plex token checks before loading the display
+
+## Installation
+
+1. Clone this repository to your web server
+2. Copy `config.php.example` to `config.php`
+3. Edit `config.php` with your Plex server details and credentials
+4. Access the application via your web browser
+5. Press 's' to open the settings panel
+
+## Configuration
+
+Edit `config.php` with your settings:
+
+- `$plexServer` - Your Plex server hostname or IP
+- `$plexToken` - Your Plex authentication token ([How to find your token](https://support.plex.tv/articles/204059436-finding-an-authentication-token-x-plex-token/))
+- `$plexClient` - IP address of the client device to monitor
+- `$pmpUsername` / `$pmpPassword` - Login credentials for the settings panel
+
+## Recommended Setup
+
+Run on a Raspberry Pi connected to a display via HDMI. Configure the Pi to:
+1. Boot to desktop
+2. Auto-start Chromium in kiosk mode
+3. Load the Plex Movie Poster Display URL
+
+## Credits
+
+- Original project by [MattsShack](https://github.com/MattsShack/Plex-Movie-Poster-Display)
+- Security enhancements and refactoring by [jaysonbrush](https://github.com/jaysonbrush)
+
+## License
+
+GPL-3.0 - See [LICENSE](LICENSE) for details.
