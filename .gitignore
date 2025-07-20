@@ -1,5 +1,29 @@
-
-.idea/*
-cache/*
+# Configuration (contains sensitive data)
 config.php
 
+# Cache directories
+cache/posters/*
+cache/art/*
+cache/logs/*
+cache/custom/*
+cache/fonts/*
+
+# Keep cache directory structure
+!cache/*/.gitkeep
+
+# Backup files
+*.bak
+*.swp
+*~
+
+# IDE files
+.idea/
+.vscode/
+*.sublime-*
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# PHP debugging
+phpinfo.php

@@ -1,0 +1,1 @@
+ <?php $currentRefreshSpeed = "20";?>
